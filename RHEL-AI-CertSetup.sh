@@ -48,7 +48,7 @@ UpdateScript() {
     release_note=$(curl -s "${release_url}" | grep '"body":' | awk -F\" '{print $4}')
     tarball_url="https://github.com/DreamCasterX/RHEL-AI-CertSetup/archive/refs/tags/${new_version}.tar.gz"
     if [[ $new_version != $__version__ ]]; then
-        echo -e "⭐️ New version found!\n\nVersion: $new_version\nRelease note:\n$release_note"
+        echo -e "${yellow}⭐️ New version found!${nc}\n\nVersion: $new_version\nRelease note:\n$release_note"
         sleep 2
         echo -e "\nDownloading update..."
         pushd "$PWD" > /dev/null 2>&1
@@ -66,7 +66,7 @@ UpdateScript() {
         fi 
     fi
 }
-# UpdateScript
+UpdateScript
 
 
 echo "-------------------------------------------------------"
