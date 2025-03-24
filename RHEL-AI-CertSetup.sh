@@ -110,9 +110,9 @@ if [[ "$OPTION" == [Cc] ]]; then
     echo
     if rhc status | grep -w 'Not connected to Red Hat Subscription Management' > /dev/null; then
         # https://console.redhat.com/insights/connector/activation-keys
-        read -p "Organization ID: " org_id  # 6937380 
-        read -p "Activation key: " activation_key  # rhcert-ai
-        ! rhc connect --organization $org_id --activation-key $activation_key && exit 1
+        # read -p "Organization ID: " org_id 
+        # read -p "Activation key: " activation_key  
+        ! rhc connect --organization 6937380 --activation-key rhcert-ai && exit 1
         subscription-manager refresh
     fi
     echo -e "\n${green}Done!${nc}\n" 
