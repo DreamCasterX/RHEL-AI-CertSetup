@@ -2,12 +2,12 @@
 
 
 # CREATOR: Mike Lu (klu7@lenovo.com)
-# CHANGE DATE: 3/24/2025
+# CHANGE DATE: 4/1/2025
 __version__="1.0"
 
 
 # Red Hat Enterprise Linux AI Hardware Certification Test Environment Setup Script
-# [Note] Must allocate more than 1.5TB space for /sysroot to download LLMs
+# [Note] System MUST allocate more than 1.5TB space for /sysroot to download LLMs
 
 
 
@@ -94,9 +94,9 @@ echo -e "Image version: ${yellow}$image_VER${nc}"
 [[ ! -z $ilab_VER ]] && echo -e "ilab version: ${yellow}$ilab_VER${nc}\n" || echo -e "ilab version: view after subscription\n"
 
 echo "Select an option to configure"
-read -p "(C)Config SUT  (R)Run rhcert  (U)Upgrade OS: " OPTION
+read -p "(c)Config SUT  (r)Run rhcert  (u)Upgrade OS: " OPTION
 while [[ "$OPTION" != [CcRrUu] ]]; do 
-    read -p "(C)Config SUT  (R)Run rhcert  (U)Upgrade OS: " OPTION
+    read -p "(c)Config SUT  (r)Run rhcert  (u)Upgrade OS: " OPTION
 done
 
 
@@ -108,12 +108,10 @@ if [[ "$OPTION" == [Cc] ]]; then
     echo "REGISTERING  SYSTEM..."
     echo "----------------------"
     echo
-    if rhc status | grep -w 'Not connected to Red Hat Subscription Management' > /dev/null; then
-        # https://console.redhat.com/insights/connector/activation-keys
-        # read -p "Organization ID: " org_id 
-        # read -p "Activation key: " activation_key  
-        ! rhc connect --organization 6937380 --activation-key rhcert-ai && exit 1
-        subscription-manager refresh
+    if sudo rhc status | grep -w 'Not connected to Red Hat Subscription Management' > /dev/null; then
+        # You can create your own activation-key here: https://console.redhat.com/insights/connector/activation-keys
+        ! sudo rhc connect --organization 6937380 --activation-key rhcert-ai && exit 1
+        sudo subscription-manager refresh
     fi
     echo -e "\n${green}Done!${nc}\n" 
     
@@ -124,10 +122,10 @@ if [[ "$OPTION" == [Cc] ]]; then
     echo "LOGIN TO REGISTRY..."
     echo "--------------------"
     echo
-    if rhc status | grep -w 'Not connected to Red Hat Insights' > /dev/null; then
+    if sudo rhc status | grep -w 'Not connected to Red Hat Insights' > /dev/null; then
         read -p "Username: " login_name
         read -p "Password: " login_PW
-        skopeo login -u="$login_name" -p="$login_PW" registry.redhat.io
+        sudo skopeo login -u="${login_name}" -p="${login_PW}" registry.redhat.io
     fi
     [[ $? = 0 ]] && echo -e "\n${green}Done!${nc}\n" || { echo -e "${red}Failed to login to registey.redhat.io${nc}"; exit 1; }
 
@@ -150,7 +148,7 @@ if [[ "$OPTION" == [Cc] ]]; then
     codeready_eus="codeready-builder-for-rhel-$RELEASE-$(uname -m)-eus-rpms"
     for repo in $cert $baseos $baseos_eus $baseos_debug $appstreamo $appstream_eus $appstream_debug $codeready $codeready_eus; do
         if ! dnf repolist | grep "$repo" > /dev/null; then
-            subscription-manager repos --enable=$repo || { echo -e "${red}Enabling $repo failed${nc}"; exit 1; }
+            sudo subscription-manager repos --enable=$repo || { echo -e "${red}Enabling $repo failed${nc}"; exit 1; }
         fi
     done    
     echo -e "\n${green}Done!${nc}\n" 
@@ -170,10 +168,10 @@ if [[ "$OPTION" == [Cc] ]]; then
 
     echo
     echo "--------------------------------------"
-    echo -e "${green_white}RHEL AI CERTIFICATION SETUP COMPLETED${nc}"
+    echo -e "${green_white}RHEL AI CERTIFICATION SETUP COMPLETED! ${nc}"
     echo "---------------------------------------"
     echo
-    echo "System will automatically reboot after 5 seconds..."
+    echo "System needs to reboot to apply changes..."
     echo
     read -p "Is it okay to continue (y/n)? " ans 
     while [[ "$ans" != [YyNn] ]]; do 
@@ -182,33 +180,36 @@ if [[ "$OPTION" == [Cc] ]]; then
     [[ "$ans" == [Nn] ]] && exit 1
     for n in {5..1}s; do printf "\r$n"; sleep 1; done
     echo
-    reboot now
+    sudo reboot now
 
 
 elif [[ "$OPTION" == [Rr] ]]; then
+    
+    # Check if rhcert-cli is installed
+    ! command -v rhcert &> /dev/null && echo -e "${yellow}Cert tool not found. Please configure SUT first${nc}\n" && exit 1
 
     # Login to registey.redhat.io
-    if rhc status | grep -w 'Not connected to Red Hat Insights' > /dev/null; then
+    if sudo rhc status | grep -w 'Not connected to Red Hat Insights' > /dev/null; then
         read -p "Username: " login_name
         read -p "Password: " login_PW
-        skopeo login -u="$login_name" -p="$login_PW" registry.redhat.io
+        sudo skopeo login -u="${login_name}" -p="${login_PW}" registry.redhat.io
     fi
     [[ $? = 0 ]] && echo -e "\n${green}Done!${nc}\n" || { echo -e "${red}Failed to login to registey.redhat.io${nc}"; exit 1; }
     
-    # For Sanity test only
+    # For Sanity test only (Do not use in formal submission)
     # sudo sed -i "s/rhelai training=\"full\"/rhelai training=\"short\"/" /etc/rhcert.xml
     echo
-    rhcert-cli plan
-    rhcert-cli run
+    sudo rhcert-cli plan
+    sudo rhcert-cli run
 
 
 elif [[ "$OPTION" == [Uu] ]]; then
 
     # Login to registey.redhat.io
-    if rhc status | grep -w 'Not connected to Red Hat Insights' > /dev/null; then
+    if sudo rhc status | grep -w 'Not connected to Red Hat Insights' > /dev/null; then
         read -p "Username: " login_name
         read -p "Password: " login_PW
-        skopeo login -u="$login_name" -p="$login_PW" registry.redhat.io
+        sudo skopeo login -u="${login_name}" -p="${login_PW}" registry.redhat.io
     fi
     
     # OS upgrade
@@ -217,12 +218,28 @@ elif [[ "$OPTION" == [Uu] ]]; then
         exit 1
     fi
     sudo cp /run/containers/0/auth.json /etc/ostree
-    sudo ls -l /etc/ostree/auth.json
-    sudo bootc status
-    read -p "Enter the OS version to upgrade (ex: 1.4.1): " UP_VER
+    # sudo bootc status
+    
+    while true; do
+        read -p "Enter the OS version to upgrade (ex: 1.4.3): " UP_VER
+        if [[ "$UP_VER" =~ ^[1-9][0-9]*\.[0-9]+\.[0-9]+$ ]]; then
+            break
+        else
+            echo -e "${yellow}Invalid format${nc}"
+        fi
+    done
     sudo bootc switch registry.redhat.io/rhelai1/bootc-nvidia-rhel9:$UP_VER
     [[ $? = 0 ]] && echo -e "\n${green}Done!${nc}\n" || { echo -e "${red}Failed to upgrade OS to "$UP_VER"${nc}"; exit 1; }
-    sudo reboot -n
+    echo "System needs to reboot to apply changes..."
+    echo
+    read -p "Is it okay to continue (y/n)? " ans 
+    while [[ "$ans" != [YyNn] ]]; do 
+        read -p "Is it okay to continue (y/n)? "ans
+    done     
+    [[ "$ans" == [Nn] ]] && exit 1
+    for n in {5..1}s; do printf "\r$n"; sleep 1; done
+    echo
+    sudo reboot now
 
 fi
 
