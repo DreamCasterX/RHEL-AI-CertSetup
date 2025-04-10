@@ -198,7 +198,25 @@ elif [[ "$OPTION" == [Rr] ]]; then
     
     # For Sanity test only (Do not use in formal submission)
     # sudo sed -i "s/rhelai training=\"full\"/rhelai training=\"short\"/" /etc/rhcert.xml
+    
+    # Workarounf to resolve mmlu issue on granite-3.1-8b-v1 based LLM
+    if ls -d ~/.cache/instructlab/models/granite-3.1-8b-* > /dev/null 2>&1; then
+        if [[ -f ~/.config/instructlab/config.yaml ]]; then
+            if ! grep -A1 -- "- '4'$" ~/.config/instructlab/config.yaml | grep -q -- "--dtype"; then
+                sudo sed -i '/- '\''4'\''$/a\    - --dtype\n    - bfloat16' ~/.config/instructlab/config.yaml
+            fi
+        else
+            sudo ilab config init
+            if ! grep -A1 -- "- '4'$" ~/.config/instructlab/config.yaml | grep -q -- "--dtype"; then
+                sudo sed -i '/- '\''4'\''$/a\    - --dtype\n    - bfloat16' ~/.config/instructlab/config.yaml
+            fi
+        fi
+    fi
     echo
+    
+    # Troubleshoot for SDG (Validating generated datasets - Error: invalid dataset)
+    # rm -fr /var/rhcert/logs/validation/SDG.log
+ 
     sudo rhcert-cli plan
     sudo rhcert-cli run
 
