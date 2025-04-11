@@ -179,7 +179,7 @@ if [[ "$OPTION" == [Cc] ]]; then
         read -p "Is it okay to continue (y/n)? "ans
     done     
     [[ "$ans" == [Nn] ]] && exit 1
-    for n in {5..1}s; do printf "\r$n"; sleep 1; done
+    for n in {3..1}s; do printf "\r$n"; sleep 1; done
     echo
     sudo reboot now
 
@@ -220,8 +220,6 @@ elif [[ "$OPTION" == [Rr] ]]; then
     fi
     echo
     
-    # Troubleshoot for SDG (Validating generated datasets - Error: invalid dataset)
-    # rm -fr /var/rhcert/logs/validation/SDG.log
     # Login to registey.redhat.io
     echo
     echo "---------------"
@@ -263,10 +261,10 @@ elif [[ "$OPTION" == [Uu] ]]; then
     echo
     read -p "Is it okay to continue (y/n)? " ans 
     while [[ "$ans" != [YyNn] ]]; do 
-        read -p "Is it okay to continue (y/n)? "ans
+        read -p "Is it okay to continue (y/n)? " ans
     done     
     [[ "$ans" == [Nn] ]] && exit 1
-    for n in {5..1}s; do printf "\r$n"; sleep 1; done
+    for n in {3..1}s; do printf "\r$n"; sleep 1; done
     echo
     sudo reboot now
 
