@@ -2,7 +2,7 @@
 
 
 # CREATOR: Mike Lu (klu7@lenovo.com)
-# CHANGE DATE: 4/1/2025
+# CHANGE DATE: 4/11/2025
 __version__="1.0"
 
 
@@ -76,7 +76,8 @@ echo
 # Display system info
 OS_VER=`cat /etc/os-release | grep ^VERSION_ID= | awk -F= '{print $2}' | cut -d '"' -f2`  # ex: 9.4
 OS_build=`cat /etc/os-release | grep ^VERSION= | awk -F= '{print $2}' | cut -d '"' -f2`   # ex: 9.20250108.0.4 (Plow)
-image_VER=`sudo bootc status --format json | jq .status.booted.image.image.image | awk -F ':' '{print $2}' | cut -d '"' -f1`
+# image_VER=`sudo bootc status --format json | jq .status.booted.image.image.image | awk -F ':' '{print $2}' | cut -d '"' -f1`
+AI_VER=`cat /etc/os-release | grep 'RHEL_AI_VERSION_ID' | cut -d '=' -f2 | tr -d "'"`
 ilab_VER=`ilab --version | awk -F 'version ' '{print $2}'`  # ex: 
 KERNEL=$(uname -r)
 CPU_info=`grep "model name" /proc/cpuinfo | head -1 | cut -d ':' -f2`
@@ -88,9 +89,9 @@ echo -e "CPU:${yellow}"$CPU_info"${nc}"
 echo -e "DIMM: ${yellow}"$MEM_info"${nc}"
 echo -e "Storage: ${yellow}"$storage_info"${nc}"
 echo -e "Kernel: ${yellow}"$KERNEL"${nc}"
+echo -e "RHEL AI version: ${yellow}$AI_VER${nc}"
 echo -e "OS version: ${yellow}$OS_VER${nc}"   
-echo -e "OS build: ${yellow}$OS_build${nc}"   
-echo -e "Image version: ${yellow}$image_VER${nc}"     
+echo -e "OS build: ${yellow}$OS_build${nc}"        
 [[ ! -z $ilab_VER ]] && echo -e "ilab version: ${yellow}$ilab_VER${nc}\n" || echo -e "ilab version: view after subscription\n"
 
 echo "Select an option to configure"
@@ -122,7 +123,7 @@ if [[ "$OPTION" == [Cc] ]]; then
     echo "LOGIN TO REGISTRY..."
     echo "--------------------"
     echo
-    if sudo rhc status | grep -w 'Not connected to Red Hat Insights' > /dev/null; then
+    if ! sudo skopeo login --get-login registry.redhat.io > /dev/null 2>&1; then
         read -p "Username: " login_name
         read -p "Password: " login_PW
         sudo skopeo login -u="${login_name}" -p="${login_PW}" registry.redhat.io
@@ -189,7 +190,12 @@ elif [[ "$OPTION" == [Rr] ]]; then
     ! command -v rhcert &> /dev/null && echo -e "${yellow}Cert tool not found. Please configure SUT first${nc}\n" && exit 1
 
     # Login to registey.redhat.io
-    if sudo rhc status | grep -w 'Not connected to Red Hat Insights' > /dev/null; then
+    echo
+    echo "--------------------"
+    echo "LOGIN TO REGISTRY..."
+    echo "--------------------"
+    echo
+    if ! sudo skopeo login --get-login registry.redhat.io > /dev/null 2>&1; then
         read -p "Username: " login_name
         read -p "Password: " login_PW
         sudo skopeo login -u="${login_name}" -p="${login_PW}" registry.redhat.io
@@ -199,7 +205,7 @@ elif [[ "$OPTION" == [Rr] ]]; then
     # For Sanity test only (Do not use in formal submission)
     # sudo sed -i "s/rhelai training=\"full\"/rhelai training=\"short\"/" /etc/rhcert.xml
     
-    # Workarounf to resolve mmlu issue on granite-3.1-8b-v1 based LLM
+    # Workaround to resolve mmlu issue on granite-3.1-8b-v1 based LLM
     if ls -d ~/.cache/instructlab/models/granite-3.1-8b-* > /dev/null 2>&1; then
         if [[ -f ~/.config/instructlab/config.yaml ]]; then
             if ! grep -A1 -- "- '4'$" ~/.config/instructlab/config.yaml | grep -q -- "--dtype"; then
@@ -216,7 +222,12 @@ elif [[ "$OPTION" == [Rr] ]]; then
     
     # Troubleshoot for SDG (Validating generated datasets - Error: invalid dataset)
     # rm -fr /var/rhcert/logs/validation/SDG.log
- 
+    # Login to registey.redhat.io
+    echo
+    echo "---------------"
+    echo "START RHCERT..."
+    echo "---------------"
+    echo
     sudo rhcert-cli plan
     sudo rhcert-cli run
 
