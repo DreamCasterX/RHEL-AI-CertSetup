@@ -2,17 +2,16 @@
 
 
 # CREATOR: Mike Lu (klu7@lenovo.com)
-# CHANGE DATE: 4/11/2025
+# CHANGE DATE: 4/14/2025
 __version__="1.0"
 
 
-# Red Hat Enterprise Linux AI Hardware Certification Test Environment Setup Script
+# *Red Hat Enterprise Linux AI Hardware Certification Test Environment Setup Script*
 # [Note] System MUST allocate more than 1.5TB space for /sysroot to download LLMs
 
 
 
-
-# Fixed settings
+# Color settings
 red='\e[41m'
 green='\e[32m'
 yellow='\e[93m'
@@ -202,43 +201,68 @@ elif [[ "$OPTION" == [Rr] ]]; then
     fi
     [[ $? = 0 ]] && echo -e "\n${green}Done!${nc}\n" || { echo -e "${red}Failed to login to registey.redhat.io${nc}"; exit 1; }
     
-    # For Sanity test only (Do not use in formal submission)
-    # sudo sed -i "s/rhelai training=\"full\"/rhelai training=\"short\"/" /etc/rhcert.xml
     
-    # Workaround to resolve mmlu issue on granite-3.1-8b-v1 based LLM
-    if ls -d ~/.cache/instructlab/models/granite-3.1-8b-* > /dev/null 2>&1; then
-        if [[ -f ~/.config/instructlab/config.yaml ]]; then
-            if ! grep -A1 -- "- '4'$" ~/.config/instructlab/config.yaml | grep -q -- "--dtype"; then
-                sudo sed -i '/- '\''4'\''$/a\    - --dtype\n    - bfloat16' ~/.config/instructlab/config.yaml
-            fi
-        else
-            sudo ilab config init
-            if ! grep -A1 -- "- '4'$" ~/.config/instructlab/config.yaml | grep -q -- "--dtype"; then
-                sudo sed -i '/- '\''4'\''$/a\    - --dtype\n    - bfloat16' ~/.config/instructlab/config.yaml
+    Enable_Short_Training() { 
+        # For Sanity test only
+        sudo sed -i "s/rhelai training=\"full\"/rhelai training=\"short\"/" /etc/rhcert.xml
+    }
+    
+    Resolve_MMLU_Issue() { 
+        # Workaround to resolve mmlu issue on granite-3.1-8b-v1 based LLM
+        if ls -d ~/.cache/instructlab/models/granite-3.1-8b-* > /dev/null 2>&1; then
+            if [[ -f ~/.config/instructlab/config.yaml ]]; then
+                if ! grep -A1 -- "- '4'$" ~/.config/instructlab/config.yaml | grep -q -- "--dtype"; then
+                    sudo sed -i '/- '\''4'\''$/a\    - --dtype\n    - bfloat16' ~/.config/instructlab/config.yaml
+                fi
+            else
+                sudo ilab config init
+                if ! grep -A1 -- "- '4'$" ~/.config/instructlab/config.yaml | grep -q -- "--dtype"; then
+                    sudo sed -i '/- '\''4'\''$/a\    - --dtype\n    - bfloat16' ~/.config/instructlab/config.yaml
+                fi
             fi
         fi
-    fi
-    echo
+        echo
+    }
     
-    # Login to registey.redhat.io
+    Resolve_Invalid_Dataset() {   
+        # Resolve error: invalid dataset
+        sudo rm -f /var/rhcert/logs/validation/SDG.log
+        sudo rm -fr /root/.local/share/instructlab/datasets/*
+    }
+    
+    # Uncomment below to use resolution
+    
+    # Enable_Short_Training
+    # Resolve_MMLU_Issue
+    # Resolve_Invalid_Dataset
+        
+
     echo
-    echo "---------------"
-    echo "START RHCERT..."
-    echo "---------------"
+    echo "---------------------"
+    echo "START CERT TESTING..."
+    echo "---------------------"
     echo
     sudo rhcert-cli plan
     sudo rhcert-cli run
-
+    # sudo rhcert-cli run --test ilab_validation
+    # sudo rhcert-cli run --test ilab_inferencing
 
 elif [[ "$OPTION" == [Uu] ]]; then
 
     # Login to registey.redhat.io
-    if sudo rhc status | grep -w 'Not connected to Red Hat Insights' > /dev/null; then
+    echo
+    echo "--------------------"
+    echo "LOGIN TO REGISTRY..."
+    echo "--------------------"
+    echo
+    if ! sudo skopeo login --get-login registry.redhat.io > /dev/null 2>&1; then
         read -p "Username: " login_name
         read -p "Password: " login_PW
         sudo skopeo login -u="${login_name}" -p="${login_PW}" registry.redhat.io
     fi
+    [[ $? = 0 ]] && echo -e "\n${green}Done!${nc}\n" || { echo -e "${red}Failed to login to registey.redhat.io${nc}"; exit 1; }
     
+
     # OS upgrade
     if [[ ! -f /run/containers/0/auth.json ]]; then
         echo -e "${yellow}Authentication file not found. Please login to registry.redhat.io and retry${nc}"
