@@ -93,14 +93,20 @@ echo -e "OS version: ${yellow}$OS_VER${nc}"
 echo -e "OS build: ${yellow}$OS_build${nc}"        
 [[ ! -z $ilab_VER ]] && echo -e "ilab version: ${yellow}$ilab_VER${nc}\n" || echo -e "ilab version: view after subscription\n"
 
-echo "Select an option to configure"
-read -p "(c)Config SUT  (r)Run rhcert  (u)Upgrade OS: " OPTION
-while [[ "$OPTION" != [CcRrUu] ]]; do 
-    read -p "(c)Config SUT  (r)Run rhcert  (u)Upgrade OS: " OPTION
+echo "Select an option:"
+echo "1) Config SUT"
+echo "2) Run rhcert"
+echo "3) Collect the latest result"
+echo "4) Upgrade OS image"
+echo "5) Exit"
+echo
+read -p "Enter your choice (1-5): " OPTION
+while [[ "$OPTION" != [12345] ]]; do 
+    read -p "Enter your choice (1-5): " OPTION
 done
 
 
-if [[ "$OPTION" == [Cc] ]]; then
+if [[ "$OPTION" == "1" ]]; then
 
     # Check system registration status
     echo
@@ -183,7 +189,7 @@ if [[ "$OPTION" == [Cc] ]]; then
     sudo reboot now
 
 
-elif [[ "$OPTION" == [Rr] ]]; then
+elif [[ "$OPTION" == "2" ]]; then
     
     # Check if rhcert-cli is installed
     ! command -v rhcert &> /dev/null && echo -e "${yellow}Cert tool not found. Please configure SUT first${nc}\n" && exit 1
@@ -247,7 +253,32 @@ elif [[ "$OPTION" == [Rr] ]]; then
     # sudo rhcert-cli run --test ilab_validation
     # sudo rhcert-cli run --test ilab_inferencing
 
-elif [[ "$OPTION" == [Uu] ]]; then
+
+elif [[ "$OPTION" == "3" ]]; then
+
+    # Save the latest log to the current directory
+    echo
+    echo "-------------------------"
+    echo "CAPTURE THE LATEST LOG..."
+    echo "-------------------------"
+    echo
+    if [[ -d /var/rhcert/save/ ]] && [[ -n "$(find /var/rhcert/save/ -mindepth 1 -maxdepth 1 -quit)" ]]; then
+        XmlLog=$(sudo ls -t /var/rhcert/save/*xml | head -1)
+        XmlLogName=$(basename "$XmlLog")
+        sudo cp $XmlLog ./ 2> /dev/null && echo -e "${green}"$XmlLogName"{nc} has been saved to the current directory$\n"
+        read -p "Do you want to clean the old results? (y/n) " ans
+        while [[ "$ans" != [YyNn] ]]; do 
+            read -p "Do you want to clean the old results? (y/n) " ans
+        done
+        [[ "$ans" == [Nn] ]] && exit 0
+        yes|sudo rhcert-cli clean all
+        echo -e "\n${green}Done!${nc}\n" 
+    else
+        echo -e "${yellow}No logs found${nc}"
+    fi
+
+
+elif [[ "$OPTION" == "4" ]]; then
 
     # Login to registey.redhat.io
     echo
@@ -291,6 +322,11 @@ elif [[ "$OPTION" == [Uu] ]]; then
     for n in {3..1}s; do printf "\r$n"; sleep 1; done
     echo
     sudo reboot now
+
+      
+elif [[ "$OPTION" == "5" ]]; then
+    echo -e "\nExiting...\n"
+    exit 0
 
 fi
 
