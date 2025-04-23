@@ -2,13 +2,16 @@
 
 
 # CREATOR: Mike Lu (klu7@lenovo.com)
-# CHANGE DATE: 4/14/2025
+# CHANGE DATE: 4/22/2025
 __version__="1.0"
 
 
 # *Red Hat Enterprise Linux AI Hardware Certification Test Environment Setup Script*
-# [Note] System MUST allocate more than 1.5TB space for /sysroot to download LLMs
 
+# [Prerequisites] 
+# 1. Confirm the SUT meets the hardware requirements of bare metal
+# 2. SUT MUST allocate more than 1.5TB space for /sysroot to download LLMs
+# 3. It is recommended to remotely control the SUT via SSH connection
 
 
 # Color settings
@@ -88,15 +91,15 @@ echo -e "CPU:${yellow}"$CPU_info"${nc}"
 echo -e "DIMM: ${yellow}"$MEM_info"${nc}"
 echo -e "Storage: ${yellow}"$storage_info"${nc}"
 echo -e "Kernel: ${yellow}"$KERNEL"${nc}"
-echo -e "RHEL AI version: ${yellow}$AI_VER${nc}"
-echo -e "OS version: ${yellow}$OS_VER${nc}"   
-echo -e "OS build: ${yellow}$OS_build${nc}"        
-[[ ! -z $ilab_VER ]] && echo -e "ilab version: ${yellow}$ilab_VER${nc}\n" || echo -e "ilab version: view after subscription\n"
+echo -e "RHEL AI version: ${yellow}"$AI_VER"${nc}"
+echo -e "OS version: ${yellow}"$OS_VER"${nc}"   
+echo -e "OS build: ${yellow}"$OS_build"${nc}"        
+[[ ! -z $ilab_VER ]] && echo -e "ilab version: ${yellow}"$ilab_VER"${nc}\n" || echo -e "ilab version: view after subscription\n"
 
 echo "Select an option:"
 echo "1) Config SUT"
 echo "2) Run rhcert"
-echo "3) Collect the latest result"
+echo "3) Collect XML log"
 echo "4) Upgrade OS image"
 echo "5) Exit"
 echo
@@ -243,16 +246,50 @@ elif [[ "$OPTION" == "2" ]]; then
     # Resolve_Invalid_Dataset
         
 
-    echo
     echo "---------------------"
     echo "START CERT TESTING..."
     echo "---------------------"
     echo
-    sudo rhcert-cli plan
-    sudo rhcert-cli run
-    # sudo rhcert-cli run --test ilab_validation
-    # sudo rhcert-cli run --test ilab_inferencing
+    echo "1) Full"
+    echo "2) ilab_inferencing"
+    echo "3) ilab_validation"
+    echo "4) self_check"
+    echo "5) supportable"
+    echo "6) sosreport"
+    echo
+    echo "Select an option:"
+    read -p "Enter your choice (1-6): " OPTION
+    while [[ "$OPTION" != [123456] ]]; do 
+        read -p "Enter your choice (1-6): " OPTION
+    done
 
+    case $OPTION in
+        1)
+            echo "Running full certification testing..."
+            sudo rhcert-cli run
+            ;;
+        2)
+            echo "Running ilab_inferencing test..."
+            sudo rhcert-cli run --test ilab_inferencing
+            ;;
+        3)
+            echo "Running ilab_validation test..."
+            sudo rhcert-cli run --test ilab_validation
+            ;;
+        4)
+            echo "Running self_check test..."
+            sudo rhcert-cli run --test self_check
+            ;;
+        5)
+            echo "Running supportable test..."
+            sudo rhcert-cli run --test support
+            ;;
+        6)
+            echo "Running sosreport test..."
+            sudo rhcert-cli run --test sosreport
+            ;;
+    esac
+    
 
 elif [[ "$OPTION" == "3" ]]; then
 
