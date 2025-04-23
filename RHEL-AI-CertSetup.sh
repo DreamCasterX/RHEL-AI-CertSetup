@@ -245,7 +245,7 @@ elif [[ "$OPTION" == "2" ]]; then
     # Resolve_MMLU_Issue
     # Resolve_Invalid_Dataset
         
-
+    sudo rhcert-cli plan
     echo "---------------------"
     echo "START CERT TESTING..."
     echo "---------------------"
@@ -262,7 +262,6 @@ elif [[ "$OPTION" == "2" ]]; then
     while [[ "$OPTION" != [123456] ]]; do 
         read -p "Enter your choice (1-6): " OPTION
     done
-
     case $OPTION in
         1)
             echo "Running full certification testing..."
